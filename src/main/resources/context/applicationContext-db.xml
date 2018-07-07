@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd"
+       default-lazy-init="true">
+    <description>数据库配置</description>
+
+    <!-- 分布式事务 -->
+    <!-- jta事务管理器 -->
+    <bean class="org.springframework.transaction.jta.JtaTransactionManager" id="jtaTransactionManager">
+        <property name="transactionManager">
+            <bean class="com.atomikos.icatch.jta.UserTransactionManager" destroy-method="close" init-method="init">
+                <property name="forceShutdown" value="true"/>
+            </bean>
+        </property>
+        <property name="userTransaction">
+            <bean class="com.atomikos.icatch.jta.UserTransactionImp">
+                <property name="transactionTimeout" value="300"/>
+            </bean>
+        </property>
+    </bean>
+    <!-- 配置数据源 -->
+    <bean class="com.atomikos.jdbc.AtomikosDataSourceBean" destroy-method="close" id="jtaDataSource1"
+          init-method="init">
+        <property name="uniqueResourceName" value="ds1"/>
+        <property name="xaDataSourceClassName" value="com.mysql.jdbc.jdbc2.optional.MysqlXADataSource"/>
+        <property name="xaProperties">
+            <props>
+                <prop key="url">jdbc:mysql://192.168.1.14:3306/db?useUnicode=true&amp;characterEncoding=UTF-8</prop>
+                <prop key="user">root</prop>
+                <prop key="password">root</prop>
+                <prop key="pinGlobalTxToPhysicalConnection">true</prop>
+            </props>
+        </property>
+        <property name="minPoolSize" value="10"/>
+        <property name="maxPoolSize" value="100"/>
+        <property name="borrowConnectionTimeout" value="30"/>
+        <property name="testQuery" value="select 1"/>
+        <property name="maintenanceInterval" value="60"/>
+    </bean>
+    <!-- 配置数据源 -->
+    <bean class="com.atomikos.jdbc.AtomikosDataSourceBean" destroy-method="close" id="jtaDataSource2"
+          init-method="init">
+        <property name="uniqueResourceName" value="ds2"/>
+        <property name="xaDataSourceClassName" value="com.mysql.jdbc.jdbc2.optional.MysqlXADataSource"/>
+        <property name="xaProperties">
+            <props>
+                <prop key="url">jdbc:mysql://192.168.1.6:3306/db?useUnicode=true&amp;characterEncoding=UTF-8</prop>
+                <prop key="user">root</prop>
+                <prop key="password">root</prop>
+                <prop key="pinGlobalTxToPhysicalConnection">true</prop>
+            </props>
+        </property>
+        <property name="minPoolSize" value="10"/>
+        <property name="maxPoolSize" value="100"/>
+        <property name="borrowConnectionTimeout" value="30"/>
+        <property name="testQuery" value="select 1"/>
+        <property name="maintenanceInterval" value="60"/>
+    </bean>
+
+    <!-- https://www.2cto.com/kf/201801/714523.html -->
+    <bean class="org.mybatis.spring.SqlSessionFactoryBean" id="sqlSessionFactory">
+        <!-- 数据库连接池 -->
+        <property name="dataSource" ref="jtaDataSource1"/>
+        <!-- 加载mybatis的全局配置文件 -->
+        <property name="configLocation" value="classpath:conf/sqlmap-config.xml"/>
+        <property name="mapperLocations">
+            <list>
+                <value>classpath*:cn/multidatasource/stu/**/*Mapper.xml</value>
+            </list>
+        </property>
+
+    </bean>
+
+    <bean class="org.mybatis.spring.SqlSessionFactoryBean" id="sqlSessionFactory2">
+        <!-- 数据库连接池 -->
+        <property name="dataSource" ref="jtaDataSource2"/>
+        <!-- 加载mybatis的全局配置文件 -->
+        <property name="configLocation" value="classpath:conf/sqlmap-config.xml"/>
+        <property name="mapperLocations">
+            <list>
+                <value>classpath*:cn/multidatasource/dao/**/*Mapper.xml</value>
+            </list>
+        </property>
+    </bean>
+
+    <!--指定mybatis的mapper文件的位置-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="cn.multidatasource.stu"/>
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory" />
+    </bean>
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="cn.multidatasource.dao"/>
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory2" />
+    </bean>
+
+</beans>
